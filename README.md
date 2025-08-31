@@ -2,8 +2,7 @@
 
 透明、自由、優雅的 AI 聊天室
 
-<img width="2468" height="1756" alt="image" src="https://github.com/user-attachments/assets/a472fa24-437f-4a52-8546-8067c870f2d3" />
-
+<img width="3839" height="2279" alt="image" src="https://github.com/user-attachments/assets/61b6ee9f-6c25-4427-957c-00a4508513b1" />
 
 ---
 
