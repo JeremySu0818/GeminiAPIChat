@@ -3,8 +3,6 @@
 透明、自由、優雅的 AI 聊天室
 
 <img width="2468" height="1756" alt="image" src="https://github.com/user-attachments/assets/a472fa24-437f-4a52-8546-8067c870f2d3" />
-![Uploading image.png…]()
-
 
 
 ---
@@ -16,7 +14,7 @@ GeminiAPIChat 並不是另一個商業化的 AI 客戶端。
 - 拒絕黑箱：程式碼完全開源、透明化  
 - 反商業化：不需要綁定信用卡、不被高額訂閱限制  
 - 美學設計：採用 Liquid Glass / macOS 風格 UI，讓使用 AI 也能賞心悅目  
-
+<img width="3839" height="2282" alt="image" src="https://github.com/user-attachments/assets/ebbf50b6-6ba3-47cc-9020-04dc10ca3627" />
 ---
 
 ## 功能特色
