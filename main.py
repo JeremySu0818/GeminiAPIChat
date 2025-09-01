@@ -374,9 +374,6 @@ async def models_status():
     return JSONResponse(status)
 
 
-MODEL_CACHE_FILE
-
-
 @app.post("/chat", response_class=HTMLResponse)
 async def chat(
     request: Request,
@@ -392,28 +389,37 @@ async def chat(
     if session_cid is not None:
         conversation_id = int(session_cid)
     if conversation_id is None:
+        # 如果 session 和 Form 都沒有提供 conversation_id，則返回錯誤
         return HTMLResponse("缺少會話 ID", status_code=400)
 
-    request.session.setdefault("chat_states", {})
-    state = request.session["chat_states"].setdefault(
-        username,
-        {
-            "chat_messages": [],
-            "chat_thread": [{"role": "user", "parts": [{"text": system_prompt}]}],
-        },
-    )
+    # ============ 修改開始 ============
 
-    thread: list[Content] = [
-        Content(role=item["role"], parts=[Part(text=p["text"]) for p in item["parts"]])
-        for item in state["chat_thread"]
+    # 1. 從資料庫載入當前對話的所有歷史訊息
+    db_messages = load_messages(conversation_id)
+
+    # 2. 建立一個包含系統提示和所有歷史訊息的完整對話線程
+    #    這確保了每一次 API 呼叫都擁有完整的上下文
+    chat_thread: list[Content] = [
+        Content(role="user", parts=[Part(text=system_prompt)])
     ]
 
-    try:
-        reply_text = call_gemini(user_input, model, thread)
+    for msg in db_messages:
+        chat_thread.append(Content(role=msg["role"], parts=[Part(text=msg["text"])]))
 
+    # ============ 修改結束 ============
+
+    try:
+        # 將使用者本次輸入新增到 thread 的末端，然後呼叫 Gemini API
+        chat_thread.append(Content(role="user", parts=[Part(text=user_input)]))
+        reply_text = client.models.generate_content(
+            model=model, contents=chat_thread
+        ).text
+
+        # 儲存使用者訊息和 AI 回覆到資料庫
         save_message(conversation_id, "user", user_input)
         save_message(conversation_id, "model", reply_text)
 
+        # 這裡的邏輯與你原本的程式碼保持一致
         conv = get_conversation(conversation_id)
         if conv and conv["title"] == "新的對話":
             title_prompt = (
@@ -439,14 +445,8 @@ async def chat(
             )
             return response
 
-        state["chat_messages"].append({"role": "user", "text": user_input})
-        state["chat_messages"].append({"role": "model", "text": reply_text})
-        state["chat_thread"] = [
-            {"role": msg.role, "parts": [{"text": part.text} for part in msg.parts]}
-            for msg in thread
-        ]
-        request.session["chat_states"][username] = state
-
+        # 由於現在每次都從資料庫讀取，session 裡的 chat_states 不再需要複雜更新
+        # 這裡可以精簡為只返回 HTML，或者保持不變以避免其他潛在影響
         return templates.TemplateResponse(
             "partials/dual_messages.html",
             {
@@ -457,6 +457,7 @@ async def chat(
         )
     except Exception as e:
         logging.error(f"Chat 端點錯誤：{e}")
+        # 這裡可以加入呼叫 switch_to_next_key() 的邏輯，但為了精簡，先省略
         return HTMLResponse("伺服器錯誤", status_code=500)
 
 
