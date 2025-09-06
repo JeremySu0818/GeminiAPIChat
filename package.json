@@ -1,0 +1,16 @@
+{
+  "name": "geminichat",
+  "version": "1.0.0",
+  "main": "electron-run.js",
+  "scripts": {
+    "dev": "electron .",
+    "start": "electron .",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "electron": "^37.4.0"
+  }
+}

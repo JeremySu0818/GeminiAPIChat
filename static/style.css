@@ -1,0 +1,986 @@
+/*
+  Liquid Glass Chat UI - Refactored CSS
+  Author: Gemini
+  Date: 2023-10-27
+*/
+
+/* ==========================================================================
+   1. 全域變數與根設定 (Global Variables & Root Configuration)
+   ========================================================================== */
+:root {
+    /* --- 玻璃擬態效果 --- */
+    --glass-blur: 80px;
+    --glass-saturate: 220%;
+    --glass-brightness: 1.15;
+    --glass-opacity: 0.03;
+    --glass-border-light: rgba(255, 255, 255, 0.2);
+    --glass-border-dark: rgba(255, 255, 255, 0.07);
+
+    /* --- 陰影效果 --- */
+    --shadow-strong: rgba(0, 0, 0, 0.6);
+    --shadow-medium: rgba(0, 0, 0, 0.4);
+
+    /* --- Hover 輝光效果 --- */
+    --hover-glow-subtle: rgba(255, 255, 255, 0.2);
+    --hover-glow-strong: rgba(255, 255, 255, 0.4);
+
+    /* --- 文字顏色 (已更新為白色系) --- */
+    --text-primary: #f0f0f0;
+    /* 主要文字，使用微灰白以提高可讀性 */
+    --text-secondary: #a0a0a0;
+    /* 次要文字/提示文字 */
+
+    /* --- 組件顏色 --- */
+    --bg-dark: #1A1A1A;
+    --user-bubble-gradient-start: #424242;
+    --user-bubble-gradient-end: #323232;
+    --ai-bubble-bg: rgba(255, 255, 255, 0.06);
+    --button-bg-light: rgba(255, 255, 255, 0.18);
+    --button-bg-dark: rgba(255, 255, 255, 0.08);
+}
+
+/* ==========================================================================
+   2. 基礎與全域樣式 (Base & Global Styles)
+   ========================================================================== */
+body {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    margin: 0;
+    overflow: hidden;
+    background: url('/static/images/background-1.png') no-repeat center center fixed;
+    background-size: cover;
+    color: var(--text-primary);
+    font-family: 'Inter', 'Noto Sans TC', 'Segoe UI', sans-serif;
+    font-weight: 400;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* 背景裝飾元素已移除，此規則保留以防萬一 */
+.bg-pattern-overlay,
+.blur-circle-1,
+.blur-circle-2 {
+    display: none;
+}
+
+/* ==========================================================================
+   3. App 佈局與側邊欄 (App Layout & Sidebar)
+   ========================================================================== */
+.app-shell {
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.sidebar {
+    position: relative;
+    /* 用於自訂滾動條定位 */
+    display: flex;
+    flex-direction: column;
+    width: 270px;
+    flex-shrink: 0;
+    background: rgba(255, 255, 255, 0.06);
+    border-right: 1px solid var(--glass-border-dark);
+    backdrop-filter: blur(calc(var(--glass-blur)*1.1)) saturate(200%);
+    -webkit-backdrop-filter: blur(calc(var(--glass-blur)*1.1)) saturate(200%);
+    transition: width .35s ease;
+    z-index: 80;
+}
+
+.sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem;
+    flex-shrink: 0;
+}
+
+.sidebar-toggle {
+    border: none;
+    background: none;
+    color: var(--text-primary);
+    font-size: 1.2rem;
+    cursor: pointer;
+}
+
+#conversationList {
+    position: relative;
+    flex: 1;
+    overflow: hidden;
+    /* 隱藏原生滾動條 */
+}
+
+.conversation-list {
+    height: 100%;
+    padding: .5rem .75rem;
+    overflow-y: auto;
+    scrollbar-width: none;
+    /* Firefox */
+    -ms-overflow-style: none;
+    /* IE/Edge */
+}
+
+.conversation-list::-webkit-scrollbar {
+    display: none;
+    /* Chrome/Safari */
+}
+
+.conversation-list li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: .5rem;
+    padding: .65rem 1rem;
+    border-radius: 1rem;
+    background: rgba(255, 255, 255, 0.08);
+    list-style: none;
+    cursor: pointer;
+    transition: background .25s ease;
+}
+
+.conversation-list li:hover {
+    background: rgba(255, 255, 255, 0.14);
+}
+
+.conversation-list li.active {
+    border: 1px solid rgba(255, 255, 255, .45);
+}
+
+.conv-title {
+    max-width: 150px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.conv-time {
+    font-size: .75rem;
+    opacity: .6;
+}
+
+/* --- 側邊欄折疊樣式 --- */
+.app-shell.collapsed .sidebar {
+    width: 66px;
+}
+
+.app-shell.collapsed .sidebar-header {
+    justify-content: center;
+    padding: 1rem 0;
+}
+
+.app-shell.collapsed .sidebar-header h2,
+.app-shell.collapsed .conversation-list,
+.app-shell.collapsed .add-conv {
+    display: none;
+}
+
+.app-shell.collapsed .sidebar-toggle .feather-arrow-left-circle {
+    display: none;
+}
+
+.app-shell.collapsed .sidebar-toggle .feather-arrow-right-circle {
+    display: inline;
+}
+
+.sidebar-toggle .feather-arrow-right-circle {
+    display: none;
+}
+
+/* ==========================================================================
+   4. 主要聊天視窗 (Main Chat Window) - 修改後
+   ========================================================================== */
+.chat-container {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100vh;
+    border: 1px solid var(--glass-border-light);
+    box-shadow: 0 0 0 rgba(0, 0, 0, 0), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+    overflow: hidden;
+    transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+/* --- 聊天室標頭 (已優化，防止重疊) --- */
+.chat-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    /* 讓子元素平均分佈 */
+    flex-shrink: 0;
+    padding: 0.5rem 2.8rem;
+    background-color: rgba(255, 255, 255, calc(var(--glass-opacity) * 0.7));
+    border-bottom: 1px solid var(--glass-border-dark);
+    box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(calc(var(--glass-blur) * 1.1)) saturate(calc(var(--glass-saturate) * 1.1)) brightness(calc(var(--glass-brightness) * 1.05));
+    -webkit-backdrop-filter: blur(calc(var(--glass-blur) * 1.1)) saturate(calc(var(--glass-saturate) * 1.1)) brightness(calc(var(--glass-brightness) * 1.05));
+}
+
+.chat-header h1 {
+    /* 移除絕對定位，讓它回到文件流中 */
+    position: relative;
+    /* 保持置中樣式 */
+    margin: 0 auto;
+    color: var(--text-primary);
+    font-size: 1.5rem;
+    font-weight: 600;
+    white-space: nowrap;
+    text-shadow: 0 0 10px rgba(0, 0, 0, 0.2), 0 0 5px rgba(0, 0, 0, 0.1);
+    z-index: 1;
+}
+
+/* 這段樣式保持不變，它已經正確地將 h1 包裝在 Flexbox 容器內 */
+.header-title-wrapper {
+    flex-grow: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    pointer-events: none;
+}
+
+.header-button-group {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    z-index: 2;
+}
+
+/* --- 聊天訊息區域 --- */
+.chat-box-wrapper {
+    position: relative;
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+.chat-box-main {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    gap: 1.6rem;
+    padding: 0.5rem 2.5rem 15rem 2.5rem;
+    overflow-y: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.chat-box-main::-webkit-scrollbar {
+    display: none;
+}
+
+/* ==========================================================================
+   5. 訊息泡泡與內容 (Message Bubbles & Content)
+   ========================================================================== */
+.message-wrapper {
+    position: relative;
+    padding: 0 calc(10px + 0.5rem);
+    perspective: 1000px;
+}
+
+.user-message {
+    text-align: right;
+}
+
+.model-message {
+    text-align: left;
+}
+
+.message-bubble {
+    display: inline-block;
+    position: relative;
+    max-width: 70%;
+    padding: 0.8rem 1.8rem;
+    border-radius: 2.6rem;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    line-height: 1.65;
+    text-align: left;
+    word-break: break-word;
+    box-shadow: 0 18px 36px -12px var(--shadow-medium), 0 9px 18px -6px rgba(0, 0, 0, 0.25);
+    transition: all 0.35s cubic-bezier(0.25, 0.8, 0.25, 1.1);
+    background-color: var(--ai-bubble-bg);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    backdrop-filter: blur(65px) saturate(240%) brightness(1.15);
+    -webkit-backdrop-filter: blur(65px) saturate(240%) brightness(1.15);
+    z-index: 11;
+}
+
+.user-message .message-bubble {
+    margin-left: auto;
+}
+
+.model-message .message-bubble {
+    margin-right: auto;
+}
+
+/* --- 程式碼區塊 --- */
+pre {
+    position: relative;
+    margin: 0;
+    padding-top: 2.5rem;
+}
+
+pre code {
+    display: block;
+    padding: 1rem;
+    border-radius: 0.75rem;
+    background-color: #1e1e1e;
+    color: #f8f8f2;
+    font-family: Consolas, Monaco, "Courier New", monospace;
+    font-size: 0.9rem;
+    white-space: pre-wrap;
+    overflow-x: auto;
+}
+
+/* ==========================================================================
+   6. 複製按鈕 (通用) (Copy Buttons - Universal)
+   ========================================================================== */
+/* --- 複製按鈕基礎樣式 --- */
+.copy-button,
+.code-block-copy-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    width: 2rem;
+    height: 2rem;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: 9999px;
+    background-color: var(--button-bg-light);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3), inset 0 0 5px rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(35px) saturate(220%);
+    -webkit-backdrop-filter: blur(35px) saturate(220%);
+    cursor: pointer;
+    transition: opacity 0.3s ease, transform 0.3s ease, background-color 0.3s, box-shadow 0.3s, border-color 0.3s;
+}
+
+.copy-button:hover,
+.code-block-copy-button:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.4);
+    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.3);
+}
+
+/* --- 訊息泡泡複製按鈕 --- */
+.copy-button {
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0;
+    z-index: 20;
+}
+
+.user-message .copy-button {
+    left: -2.5rem;
+}
+
+.model-message .copy-button {
+    right: -2.5rem;
+}
+
+.message-wrapper:hover .copy-button {
+    opacity: 1;
+}
+
+.copy-button:hover {
+    opacity: 1;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.45), 0 0 18px var(--hover-glow-subtle);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+/* --- 程式碼區塊複製按鈕 --- */
+.code-block-copy-button {
+    top: 1.5rem !important;
+    right: 0.5rem !important;
+    z-index: 25;
+}
+
+/* --- 複製按鈕圖示 --- */
+.copy-button svg,
+.code-block-copy-button svg {
+    width: 0.9rem;
+    height: 0.9rem;
+    fill: var(--text-primary);
+}
+
+.copy-button.copied-success-anim svg,
+.code-block-copy-button.copied-success-anim svg {
+    fill: var(--text-primary) !important;
+}
+
+/* --- 複製成功動畫 --- */
+.copy-button.copied-success-anim,
+.code-block-copy-button.copied-success-anim {
+    animation: copySuccessBounce 0.7s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.copy-button-icon.fade-out {
+    animation: checkmarkFadeOut 0.3s ease-out forwards;
+}
+
+/* ==========================================================================
+   7. 聊天輸入區域 (Chat Input Area)
+   ========================================================================== */
+.chat-form {
+    position: fixed;
+    bottom: 2.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(100% - 8rem);
+    max-width: 800px;
+    padding: 1rem 2rem;
+    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.08) 50%, rgba(255, 255, 255, 0.08));
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 2rem;
+    box-shadow: 0 18px 36px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.08), inset 0 -1px 0 rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(75px) saturate(220%) brightness(1.05);
+    -webkit-backdrop-filter: blur(75px) saturate(220%) brightness(1.05);
+    z-index: 99;
+}
+
+.form-inner-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 0.8rem 1.2rem;
+}
+
+.input-area {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-end;
+}
+
+/* --- 輸入框 --- */
+.user-input {
+    flex: 1;
+    width: 100%;
+    min-height: 2.7rem;
+    padding: 0.8rem 1.6rem;
+    box-sizing: border-box;
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    border-radius: 2rem;
+    background-color: rgba(255, 255, 255, 0.08);
+    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.12), 0 0 0.5px rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(65px) saturate(200%) brightness(1.12);
+    -webkit-backdrop-filter: blur(65px) saturate(200%) brightness(1.12);
+    color: var(--text-primary);
+    resize: none;
+    overflow-y: hidden;
+    transition: border-color 0.3s, background-color 0.3s, box-shadow 0.3s;
+}
+
+.user-input:focus {
+    outline: none;
+    background-color: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.45);
+    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.15), 0 0 0 6px rgba(255, 255, 255, 0.22), 0 0 15px rgba(255, 255, 255, 0.1);
+}
+
+.user-input::placeholder {
+    color: var(--text-secondary);
+    opacity: 0.9;
+}
+
+/* --- 發送按鈕 --- */
+.submit-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 2.7rem;
+    height: 2.7rem;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 9999px;
+    background-color: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(48px) saturate(200%) brightness(1.12);
+    -webkit-backdrop-filter: blur(48px) saturate(200%) brightness(1.12);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.35s cubic-bezier(0.25, 0.8, 0.25, 1.1);
+}
+
+.submit-button:hover {
+    transform: scale(1.1);
+    background-color: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.35);
+}
+
+/* --- 模型選擇器 --- */
+.model-selector-wrapper {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    max-width: fit-content;
+    margin-bottom: 0.1rem;
+    padding: 0.25rem 0.8rem;
+    background-color: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 9999px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 4px 10px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(45px) saturate(200%) brightness(1.1);
+    -webkit-backdrop-filter: blur(45px) saturate(200%) brightness(1.1);
+    cursor: pointer;
+    transition: all 0.3s ease-in-out;
+}
+
+.model-selector-wrapper:hover {
+    border-color: rgba(255, 255, 255, 0.4);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 6px 15px rgba(0, 0, 0, 0.4), 0 0 10px var(--hover-glow-subtle);
+}
+
+.model-selector-wrapper::after {
+    content: '▾';
+    position: absolute;
+    top: 50%;
+    right: 0.6rem;
+    transform: translateY(-50%);
+    color: var(--text-primary);
+    font-size: 0.8rem;
+    pointer-events: none;
+    transition: color 0.3s ease;
+}
+
+.model-selector {
+    position: relative;
+    padding-right: 0.8rem;
+    border: none;
+    background-color: transparent;
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    z-index: 1;
+}
+
+.model-selector:focus {
+    outline: none;
+}
+
+.model-selector option {
+    background-color: var(--bg-dark);
+    color: var(--text-primary);
+}
+
+
+/* ==========================================================================
+   8. 狀態指示器與頁首按鈕 (Indicators & Header Buttons)
+   ========================================================================== */
+.htmx-indicator,
+#loading-indicator-wrapper {
+    position: fixed;
+    bottom: 3.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 0.6rem 1.2rem;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 1.5rem;
+    box-shadow: 0 10px 20px var(--shadow-medium), inset 0 0 5px rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(48px) saturate(200%) brightness(1.15);
+    -webkit-backdrop-filter: blur(48px) saturate(200%) brightness(1.15);
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    line-height: 1.4;
+    z-index: 20;
+}
+
+.htmx-indicator {
+    background-color: rgba(255, 255, 255, 0.15);
+}
+
+#loading-indicator-wrapper {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.htmx-indicator:empty,
+#loading-indicator-wrapper:empty {
+    display: none;
+}
+
+.logout-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    padding: 0.6rem 1.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 9999px;
+    background-color: rgba(255, 255, 255, 0.08);
+    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1), 0 5px 15px var(--shadow-medium);
+    backdrop-filter: blur(45px) saturate(200%) brightness(1.1);
+    -webkit-backdrop-filter: blur(45px) saturate(200%) brightness(1.1);
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.35s cubic-bezier(0.25, 0.8, 0.25, 1.1);
+    z-index: 2;
+}
+
+.logout-button:hover {
+    transform: translateY(-3px) scale(1.02);
+    background-color: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.28);
+    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.15), 0 10px 25px var(--shadow-strong), 0 0 18px var(--hover-glow-subtle);
+}
+
+.logout-button:active {
+    transform: translateY(0) scale(0.98);
+    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1), 0 3px 8px var(--shadow-medium);
+}
+
+/* ==========================================================================
+   9. 自訂滾動條 (Custom Scrollbar)
+   ========================================================================== */
+.custom-scrollbar-container {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 10px;
+    height: 100%;
+    padding: 10px 0;
+    box-sizing: border-box;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.chat-box-wrapper:hover .custom-scrollbar-container,
+.sidebar:hover .custom-scrollbar-container {
+    opacity: 1;
+}
+
+.custom-scrollbar-track {
+    position: relative;
+    width: 4px;
+    height: 100%;
+    margin: 0 auto;
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 9999px;
+    pointer-events: auto;
+}
+
+.custom-scrollbar-thumb {
+    position: absolute;
+    width: 100%;
+    min-height: 30px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 9999px;
+    background-color: rgba(255, 255, 255, 0.25);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(30px) saturate(220%) brightness(1.1);
+    -webkit-backdrop-filter: blur(30px) saturate(220%) brightness(1.1);
+    cursor: grab;
+    transition: background-color 0.2s, box-shadow 0.2s;
+}
+
+.custom-scrollbar-thumb:hover {
+    background-color: rgba(255, 255, 255, 0.35);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.35);
+}
+
+.custom-scrollbar-thumb:active {
+    background-color: rgba(255, 255, 255, 0.45);
+    cursor: grabbing;
+}
+
+/* ==========================================================================
+   10. 彈出視窗 (Modal / Dialog)
+   ========================================================================== */
+.custom-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background-color: transparent;
+    backdrop-filter: blur(10px);
+    z-index: 1000;
+}
+
+.custom-modal-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 90%;
+    max-width: 400px;
+    padding: 2rem;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 1.5rem;
+    background-color: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 15px 40px var(--shadow-strong), 0 0 0 2px var(--glass-border-light);
+    backdrop-filter: blur(40px) saturate(180%) brightness(1.1);
+    -webkit-backdrop-filter: blur(40px) saturate(180%) brightness(1.1);
+    color: var(--text-primary);
+    text-align: center;
+    opacity: 0;
+    transform: scale(0.95);
+    animation: fadeInScaleUp 0.3s forwards cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.modal-title {
+    margin: 0 0 1rem;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.custom-modal-content p {
+    margin-bottom: 1.5rem;
+    color: var(--text-primary);
+    font-size: 1.1rem;
+}
+
+.modal-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-top: 1rem;
+}
+
+.modal-button {
+    padding: 0.7rem 1.8rem;
+    border: 1px solid;
+    border-radius: 9999px;
+    box-shadow: 0 5px 15px var(--shadow-medium);
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1.1);
+}
+
+/* --- 確認按鈕 (紅色) --- */
+#customConfirmModal .modal-button.confirm,
+#deleteConfirmModal .modal-button.confirm {
+    background-color: rgba(255, 99, 71, 0.15);
+    border-color: rgba(255, 99, 71, 0.3);
+    color: #FF6347;
+}
+
+#customConfirmModal .modal-button.confirm:hover,
+#deleteConfirmModal .modal-button.confirm:hover {
+    transform: translateY(-3px);
+    background-color: rgba(255, 99, 71, 0.25);
+    box-shadow: 0 8px 20px rgba(255, 99, 71, 0.3), 0 0 15px rgba(255, 99, 71, 0.2);
+    color: #FF8C69;
+}
+
+/* --- 確認按鈕 (通用/非警告) & 取消按鈕 --- */
+#renameModal .modal-button.confirm,
+.modal-button.cancel {
+    background-color: rgba(128, 128, 128, 0.1);
+    border-color: rgba(128, 128, 128, 0.2);
+    color: var(--text-primary);
+}
+
+#renameModal .modal-button.confirm:hover,
+.modal-button.cancel:hover {
+    transform: translateY(-3px);
+    background-color: rgba(128, 128, 128, 0.2);
+    box-shadow: 0 8px 20px rgba(128, 128, 128, 0.2), 0 0 15px rgba(128, 128, 128, 0.1);
+}
+
+
+/* ==========================================================================
+   11. 側邊欄項目操作 (Sidebar Item Actions)
+   ========================================================================== */
+.conv-item {
+    position: relative;
+    padding-right: 2rem;
+    /* 為按鈕保留空間 */
+}
+
+.action-button {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: none;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    opacity: 0;
+    cursor: pointer;
+    transition: opacity 0.3s, background-color 0.3s, transform 0.3s;
+}
+
+.conv-item:hover .action-button {
+    opacity: 1;
+}
+
+.action-button:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+    transform: translateY(-50%) scale(1.1);
+}
+
+.action-button svg {
+    width: 1rem;
+    height: 1rem;
+    stroke: #ffffff;
+    stroke-width: 2;
+}
+
+.rename-button {
+    right: 48px;
+}
+
+.delete-button {
+    right: 8px;
+}
+
+.rename-input {
+    width: 100%;
+    padding: 0.8rem 1rem;
+    margin-top: 1rem;
+    font-size: 1rem;
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 0.75rem;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2), 0 4px 10px rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(10px) saturate(200%);
+    -webkit-backdrop-filter: blur(10px) saturate(200%);
+    transition: all 0.3s ease;
+}
+
+.rename-input:focus {
+    outline: none;
+    border-color: rgba(255, 255, 255, 0.5);
+    background: rgba(255, 255, 255, 0.15);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3), 0 0 0 2px rgba(255, 255, 255, 0.3);
+}
+
+.rename-input::placeholder {
+    color: rgba(255, 255, 255, 0.6);
+}
+
+
+
+/* ==========================================================================
+   12. 動畫與視覺輔助 (Animations & Visual Helpers)
+   ========================================================================== */
+/* --- 底部淡出遮罩 --- */
+.fadeout-overlay {
+    position: fixed;
+    bottom: 0rem;
+    left: 0;
+    width: 100%;
+    height: 15rem;
+    background-image: url('/static/images/background-1.png');
+    background-size: cover;
+    background-attachment: fixed;
+    background-position: center;
+    mask-image: linear-gradient(to bottom, transparent 0%, black 20%, black 100%);
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 20%, black 100%);
+    pointer-events: none;
+    z-index: 3;
+}
+
+/* --- 訊息滑入動畫 --- */
+.animate-slide-in-left {
+    animation: slideInLeft 0.8s cubic-bezier(0.2, 0.8, 0.2, 1.05) both;
+}
+
+.animate-slide-in-right {
+    animation: slideInRight 0.8s cubic-bezier(0.2, 0.8, 0.2, 1.05) both;
+}
+
+@keyframes slideInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-70px) scale(0.8);
+        filter: brightness(0.7);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+        filter: brightness(1);
+    }
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(70px) scale(0.8);
+        filter: brightness(0.7);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+        filter: brightness(1);
+    }
+}
+
+/* --- 彈出視窗動畫 --- */
+@keyframes fadeInScaleUp {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes fadeOutScaleDown {
+    from {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    to {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+}
+
+/* --- 複製按鈕動畫 --- */
+@keyframes copySuccessBounce {
+    0% {
+        transform: translateY(-50%) scale(1);
+    }
+
+    20% {
+        transform: translateY(-63%) scale(1.2);
+    }
+
+    40% {
+        transform: translateY(-52%) scale(0.95);
+    }
+
+    60% {
+        transform: translateY(-55%) scale(1.10);
+    }
+
+    80% {
+        transform: translateY(-51.5%) scale(1.03);
+    }
+
+    100% {
+        transform: translateY(-50%) scale(1);
+    }
+}
+
+@keyframes checkmarkFadeOut {
+    from {
+        opacity: 1;
+    }
+
+    to {
+        opacity: 0;
+    }
+}

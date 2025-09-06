@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gemini 聊天室</title>
+    <script src="https://unpkg.com/htmx.org@1.9.5"></script>
+    <link rel="icon" href="/static/images/favicon.ico" type="image/x-icon">
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="/static/style-mobile.css" media="screen and (max-width: 768px)">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+</head>
+
+<body>
+    <div class="app-shell">
+        <aside id="sidebar" class="sidebar" hx-get="/conversations" hx-trigger="load" hx-target="#conversationList">
+            <header class="sidebar-header">
+                <h2>對話列表</h2>
+                <button class="sidebar-toggle" id="toggleSidebar" aria-label="切換側邊欄">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        class="feather feather-arrow-left-circle">
+                        <circle cx="12" cy="12" r="10" />
+                        <polyline points="12 8 8 12 12 16" />
+                        <line x1="16" y1="12" x2="8" y2="12" />
+                    </svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        class="feather feather-arrow-right-circle folded-icon">
+                        <circle cx="12" cy="12" r="10" />
+                        <polyline points="12 16 16 12 12 8" />
+                        <line x1="8" y1="12" x2="16" y2="12" />
+                    </svg>
+                </button>
+            </header>
+            <nav id="conversationList"></nav>
+            <!-- 自製卷軸：側欄對話列表專用 -->
+            <div class="custom-scrollbar-container" id="sidebarScrollbarContainer">
+                <div class="custom-scrollbar-track" id="sidebarScrollbarTrack">
+                    <div class="custom-scrollbar-thumb" id="sidebarScrollbarThumb"></div>
+                </div>
+            </div>
+
+        </aside>
+        <main class="chat-container">
+            <header class="chat-header">
+                <div class="header-title-wrapper">
+                    <h1>Gemini 聊天室</h1>
+                </div>
+                <div class="header-button-group">
+                    <button type="button" class="logout-button" id="resetBtn">清除所有對話</button>
+                    <button type="button" class="logout-button" id="logoutBtn">登出</button>
+                </div>
+
+
+            </header>
+            <div class="chat-box-wrapper">
+                <div class="fadeout-overlay"></div>
+                <main id="chat-box" class="chat-box-main">
+                    {% for msg in chat_messages %}
+                    <div class="message-wrapper {% if msg.role == 'user' %}user-message{% else %}model-message{% endif %}"
+                        data-initialized="true">
+                        <div class="message-bubble">
+                            <div class="message-content">
+                                {% if msg.role == 'user' %}
+                                {{ msg.text | e }}
+                                {% else %}
+                                {{ msg.text | markdown | safe }}
+                                {% endif %}
+                            </div>
+                            <button onclick="copyMessage(this)" class="copy-button message-copy-button"
+                                aria-label="複製訊息">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                    stroke-width="1.5" stroke="currentColor" class="copy-button-icon">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H9.75" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    {% endfor %}
+
+                </main>
+                <div class="chat-scroll-end-filler"></div>
+                <div class="custom-scrollbar-container" id="customScrollbarContainer">
+                    <div class="custom-scrollbar-track" id="customScrollbarTrack">
+                        <div class="custom-scrollbar-thumb" id="customScrollbarThumb"></div>
+                    </div>
+                </div>
+            </div>
+            <form hx-post="/chat" hx-target="#chat-box" hx-swap="beforeend" class="chat-form" id="chat-form"
+                hx-indicator="#loading-indicator-wrapper"
+                hx-on--submit="document.getElementById('user_input').focus(); document.getElementById('chat-box').scrollTo({ top: document.getElementById('chat-box').scrollHeight, behavior: 'smooth' });">
+                <div class="form-inner-wrapper">
+                    <div class="model-selector-wrapper">
+                        <select name="model" class="model-selector">
+                            {% for m in model_list %}
+                            <option value="{{ m }}" {% if m==default_model %}selected{% endif %}>{{ m }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="input-area">
+                        <textarea name="user_input" id="user_input" required placeholder="輸入訊息..." class="user-input"
+                            autofocus rows="1"></textarea>
+                        <input id="conversationIdInput" type="hidden" name="conversation_id"
+                            value="{{ conversation_id }}" />
+                        <button type="submit" class="submit-button" hx-disable-element="#user_input, this"
+                            aria-label="發送訊息">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="submit-button-icon" viewBox="0 0 20 20"
+                                fill="currentColor">
+                                <path fill-rule="evenodd"
+                                    d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z"
+                                    clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </main>
+    </div>
+    <div class="bg-pattern-overlay"></div>
+    <div class="blur-circle-1"></div>
+    <div class="blur-circle-2"></div>
+
+    <div id="loading-indicator-wrapper" class="htmx-indicator">
+        AI 正在回覆中...
+    </div>
+
+    <div id="customConfirmModal" class="custom-modal-overlay">
+        <div class="custom-modal-content">
+            <p>確定要清除所有對話嗎？這會清除所有紀錄。</p>
+            <div class="modal-buttons">
+                <button id="confirmResetBtn" class="modal-button confirm">確定</button>
+                <button id="cancelResetBtn" class="modal-button cancel">取消</button>
+            </div>
+        </div>
+    </div>
+    <div id="deleteConfirmModal" class="custom-modal-overlay">
+        <div class="custom-modal-content">
+            <p>確定要刪除此對話？此操作無法復原。</p>
+            <div class="modal-buttons">
+                <button id="confirmDeleteBtn" class="modal-button confirm">確定</button>
+                <button id="cancelDeleteBtn" class="modal-button cancel">取消</button>
+            </div>
+        </div>
+    </div>
+    <div id="renameModal" class="custom-modal-overlay" style="display:none;">
+        <div class="custom-modal-content">
+            <h3 class="modal-title">重新命名對話</h3>
+            <input type="text" id="renameInput" class="rename-input" placeholder="請輸入新標題" autofocus>
+            <div class="modal-buttons">
+                <button id="confirmRenameBtn" class="modal-button confirm">確定</button>
+                <button id="cancelRenameBtn" class="modal-button cancel">取消</button>
+            </div>
+        </div>
+    </div>
+    <div id="generatingModal" class="custom-modal-overlay">
+        <div class="custom-modal-content">
+            <p>AI 正在回覆中...</p>
+            <div class="modal-buttons">
+                <button id="closeGeneratingBtn" class="modal-button confirm">知道了</button>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="/static/script.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,19 @@
+# Python 虛擬環境
+.venv/
+venv/
+
+# Node.js 依賴
+node_modules/
+
+# Python 編譯快取
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# 備份資料夾
+backup/
+
+# 系統檔案
+.DS_Store
+Thumbs.db
